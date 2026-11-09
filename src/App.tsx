@@ -514,12 +514,12 @@ export default function App() {
         }
       : userRole === 'Pelajar'
         ? {
-            name: selectedStudent?.name ?? UNSET_VALUE,
+            name: 'Muhammad Irsyad Bin Azam',
             badge: userRole,
             fields: [
-              { label: 'No. Matrik', value: UNSET_VALUE },
-              { label: 'Kelas', value: selectedStudent?.kelas ?? UNSET_VALUE },
-              { label: 'No. Telefon', value: UNSET_VALUE },
+              { label: 'No. Matrik', value: '08DEP25F1067' },
+              { label: 'Kelas', value: 'DEP 3' },
+              { label: 'No. Telefon', value: '013-767 0285' },
             ],
           }
         : {
@@ -760,7 +760,7 @@ export default function App() {
               </div>
             )}
 
-            <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <span className="text-xs font-bold uppercase text-teal-700">Hafazan Terkini</span>
                 <p className="font-black text-slate-800 mt-1">{getStudentHafazanProgress(selectedStudentId)}</p>
@@ -768,10 +768,6 @@ export default function App() {
               <div>
                 <span className="text-xs font-bold uppercase text-teal-700">Status Tahriri</span>
                 <p className="font-black text-slate-800 mt-1">{getStudentTahririProgress(selectedStudentId)}</p>
-              </div>
-              <div>
-                <span className="text-xs font-bold uppercase text-teal-700">Komen Guru Terkini</span>
-                <p className="text-sm text-slate-600 mt-1">{latestTeacherNote || 'Belum ada komen daripada guru.'}</p>
               </div>
             </div>
 
