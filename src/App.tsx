@@ -1,7 +1,7 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react';
 import {
   Award, FileText, User, LogOut, Target, BookOpen, Flame, Trophy, Check,
-  MessageSquare, Trash2, UserPlus, PenLine, ArrowRight
+  MessageSquare, Trash2, UserPlus, PenLine, ArrowRight, Camera
 } from 'lucide-react';
 import { MAQRA_BOUNDARIES } from './maqraData';
 import type { MaqraBoundary } from './maqraData';
@@ -337,6 +337,7 @@ export default function App() {
   const [newStudentKelas, setNewStudentKelas] = useState<string>('');
   const [assessments, setAssessments] = useState<Record<string, Assessment>>(() => loadStored('flixmaqra_assessments', {}));
   const [tahririStore, setTahririStore] = useState<Record<string, TahririRecord>>(() => loadStored('flixmaqra_tahriri', {}));
+  const [profileImages, setProfileImages] = useState<Record<string, string>>(() => loadStored('flixmaqra_profile_images', {}));
 
   useEffect(() => {
     localStorage.setItem('flixmaqra_assessments', JSON.stringify(assessments));
@@ -349,6 +350,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('flixmaqra_tahriri', JSON.stringify(tahririStore));
   }, [tahririStore]);
+
+  useEffect(() => {
+    localStorage.setItem('flixmaqra_profile_images', JSON.stringify(profileImages));
+  }, [profileImages]);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId) ?? null;
   const expandedMaqra = MAQRA_BOUNDARIES.find(m => m.rubNumber === expandedRub) ?? null;
@@ -532,6 +537,27 @@ export default function App() {
             ],
           };
 
+  const currentProfileImage = profileImages[userRole] ?? null;
+
+  const handleProfileImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setProfileImages(prev => ({ ...prev, [userRole]: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const resetProfileImage = () => {
+    setProfileImages(prev => {
+      const next = { ...prev };
+      delete next[userRole];
+      return next;
+    });
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex items-center justify-center p-4">
@@ -631,7 +657,11 @@ export default function App() {
           </div>
           <div className="flex items-center space-x-3">
             <span className="px-3 py-1 bg-teal-900 border border-amber-300/30 text-amber-300 text-xs font-semibold rounded-full flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" />
+              {currentProfileImage ? (
+                <img src={currentProfileImage} alt="" className="w-5 h-5 rounded-full object-cover" />
+              ) : (
+                <User className="w-3.5 h-3.5" />
+              )}
               {displayName}
             </span>
             <button onClick={() => setIsAuthenticated(false)} className="p-2 bg-teal-900 text-teal-200 rounded-xl hover:bg-teal-950 transition-all">
@@ -1094,9 +1124,33 @@ export default function App() {
         {activeTab === 'Profile' && (
           <section className="bg-white rounded-2xl border border-amber-200/60 shadow-sm overflow-hidden">
             <div className="bg-teal-800 p-6 text-center text-white border-b-4 border-amber-400">
-              <div className="w-20 h-20 mx-auto rounded-full bg-amber-400 text-teal-950 flex items-center justify-center shadow-md">
-                <User className="w-9 h-9" />
+              <div className="relative w-20 h-20 mx-auto">
+                <div className="w-20 h-20 rounded-full bg-amber-400 text-teal-950 flex items-center justify-center shadow-md overflow-hidden">
+                  {currentProfileImage ? (
+                    <img src={currentProfileImage} alt="Gambar Profil" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-9 h-9" />
+                  )}
+                </div>
+                <label htmlFor="profile-image-upload" className="absolute bottom-0 right-0 p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow cursor-pointer transition-colors">
+                  <Camera className="w-3.5 h-3.5" />
+                </label>
+                <input
+                  id="profile-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfileImageUpload}
+                  className="hidden"
+                />
               </div>
+              {currentProfileImage && (
+                <button
+                  onClick={resetProfileImage}
+                  className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 hover:bg-rose-100 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Reset Gambar
+                </button>
+              )}
               <h2 className="text-xl font-black mt-4">{profile.name}</h2>
               <span className="inline-block mt-2 px-3 py-1 rounded-full bg-teal-900 border border-amber-300/30 text-amber-300 text-xs font-semibold">
                 {profile.badge}
