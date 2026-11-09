@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  body { background: white !important; }
+  .print\:hidden { display: none !important; }
+  nav.fixed { display: none !important; }
+  main { padding-top: 0 !important; }
+  section, div { box-shadow: none !important; break-inside: avoid; }
+}

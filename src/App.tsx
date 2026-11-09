@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react';
 import {
   Award, FileText, User, LogOut, Target, BookOpen, Flame, Trophy, Check,
-  MessageSquare, Trash2, UserPlus, PenLine, ArrowRight, Camera
+  MessageSquare, Trash2, UserPlus, PenLine, ArrowRight, Camera, MessageCircle, Printer
 } from 'lucide-react';
 import { MAQRA_BOUNDARIES } from './maqraData';
 import type { MaqraBoundary } from './maqraData';
@@ -14,6 +14,7 @@ type TahririStatus = 'Belum Disemak' | 'Disemak';
 interface Assessment {
   syafawi: 'Mumtaz' | 'Jayyid Jiddan' | 'Jayyid' | 'Maqbul' | null;
   teacherNote: string;
+  teacherNoteTimestamp?: string;
   parentVerified: boolean;
   parentReaction?: ParentReaction;
   date: string;
@@ -102,7 +103,7 @@ const DEFAULT_STUDENTS: Student[] = [
 const REMEMBER_EMAIL_KEY = 'flixmaqra_remember_email';
 
 const TEST_ACCOUNTS: { email: string; password: string; role: Role; displayName: string; fullName: string; studentId: string }[] = [
-  { email: 'guru@psa.edu.my', password: 'guru123', role: 'Guru', displayName: 'Ustazah Nor Aisah', fullName: 'Ustazah Nor Aisah binti Abu Samah', studentId: DEFAULT_STUDENT_ID },
+  { email: 'pensyarah@psa.edu.my', password: 'pensyarah123', role: 'Guru', displayName: 'Ustazah Nor Aisah', fullName: 'Ustazah Nor Aisah binti Abu Samah', studentId: DEFAULT_STUDENT_ID },
   { email: 'pelajar@student.psa.edu.my', password: 'pelajar123', role: 'Pelajar', displayName: 'Muhammad Irsyad', fullName: 'Muhammad Irsyad bin Azam', studentId: 'h3-5' },
   { email: 'waris@gmail.com', password: 'waris123', role: 'Ibu Bapa', displayName: 'Suhaila', fullName: 'Suhaila Binti Hamzah', studentId: 'h3-5' },
 ];
@@ -235,10 +236,10 @@ function ParentFeedback({ teacherNote, parentVerified, parentReaction, onMarkRea
   return (
     <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
       <span className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
-        <MessageSquare className="w-4 h-4 text-teal-700" /> Komen Guru
+        <MessageSquare className="w-4 h-4 text-teal-700" /> Komen Pensyarah
       </span>
       <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-100 min-h-[3rem]">
-        {teacherNote || 'Belum ada komen daripada guru.'}
+        {teacherNote || 'Belum ada komen daripada pensyarah.'}
       </p>
 
       <button
@@ -464,6 +465,7 @@ export default function App() {
 
   const latestHafazanMaqra = highestMaqraWhere(assessments, `${selectedStudentId}_`, a => !!a.syafawi);
   const latestTeacherNote = latestHafazanMaqra ? (studentAssessments[latestHafazanMaqra]?.teacherNote ?? '') : '';
+  const latestTeacherNoteTimestamp = latestHafazanMaqra ? (studentAssessments[latestHafazanMaqra]?.teacherNoteTimestamp ?? '') : '';
 
   const studentSemesterInfo = getSemesterInfo(selectedStudent?.kelas ?? '');
   const semesterRubs = studentSemesterInfo
@@ -471,6 +473,16 @@ export default function App() {
     : [];
   const semesterDone = semesterRubs.filter(m => studentAssessments[m.rubNumber]?.syafawi).length;
   const semesterPercent = semesterRubs.length > 0 ? Math.round((semesterDone / semesterRubs.length) * 100) : 0;
+
+  const semesterSurahs = new Set<number>();
+  const assessedSurahs = new Set<number>();
+  for (const m of semesterRubs) {
+    for (let s = m.startSurah; s <= m.endSurah; s++) semesterSurahs.add(s);
+    if (studentAssessments[m.rubNumber]?.syafawi) {
+      for (let s = m.startSurah; s <= m.endSurah; s++) assessedSurahs.add(s);
+    }
+  }
+  const surahProgressPercent = semesterSurahs.size > 0 ? Math.round((assessedSurahs.size / semesterSurahs.size) * 100) : 0;
 
   const totalCompleted = Object.values(studentAssessments).filter(a => a.syafawi !== null).length;
   const countMumtaz = Object.values(studentAssessments).filter(a => a.syafawi === 'Mumtaz').length;
@@ -552,6 +564,22 @@ export default function App() {
     });
   };
 
+  const buildWhatsAppMessage = (student: Student): string => {
+    const info = getSemesterInfo(student.kelas);
+    if (!info) return '';
+    const semRubsForStudent = MAQRA_BOUNDARIES.filter(m =>
+      m.rubNumber > (info.startJuz - 1) * MAQRA_PER_JUZ && m.rubNumber <= info.endJuz * MAQRA_PER_JUZ
+    );
+    const hafazanDone = semRubsForStudent.filter(m => assessments[`${student.id}_${m.rubNumber}`]?.syafawi).length;
+    const tahririDone = semRubsForStudent.filter(m => tahririStore[`${student.id}_tahriri_${m.rubNumber}`]?.status === 'Disemak').length;
+    const latestMaqra = highestMaqraWhere(assessments, `${student.id}_`, a => !!a.syafawi);
+    const latestNote = latestMaqra ? (assessments[`${student.id}_${latestMaqra}`]?.teacherNote ?? '') : '';
+    return `Salam, Pn Suhaila. Berikut ringkasan prestasi hafazan ${student.name} (Sem ${info.semester}):\n\n` +
+      `- Hafazan: ${hafazanDone} daripada ${semRubsForStudent.length} maqra' dinilai\n` +
+      `- Semakan Buku Tahriri: ${tahririDone} daripada ${semRubsForStudent.length} disemak\n` +
+      `- Ulasan Pensyarah: ${latestNote || 'Tiada komen terkini'}`;
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex items-center justify-center p-4">
@@ -574,7 +602,7 @@ export default function App() {
                 required
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
-                placeholder="guru@psa.edu.my atau emel berdaftar"
+                placeholder="pensyarah@psa.edu.my atau emel berdaftar"
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -629,7 +657,7 @@ export default function App() {
 
           <div className="mt-6 pt-4 border-t border-slate-200 space-y-1 text-[11px] text-slate-500">
             <p className="font-bold uppercase text-slate-600">RUJUKAN AKAUN PROTOTAIP</p>
-            <p>Guru: guru@psa.edu.my / guru123</p>
+            <p>Pensyarah: pensyarah@psa.edu.my / pensyarah123</p>
             <p>Pelajar: pelajar@student.psa.edu.my / pelajar123</p>
             <p>Ibu Bapa: waris@gmail.com / waris123</p>
           </div>
@@ -692,6 +720,12 @@ export default function App() {
                   <p className="text-[11px] text-slate-500 mt-0.5">buku tahriri disemak keseluruhan</p>
                 </div>
               </div>
+              <button
+                onClick={() => window.print()}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-teal-800 text-xs font-bold border border-teal-300 hover:bg-teal-50 transition-all print:hidden"
+              >
+                <Printer className="w-4 h-4" /> Muat Turun Laporan (PDF)
+              </button>
             </section>
 
             <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm space-y-4">
@@ -723,12 +757,24 @@ export default function App() {
                         <PenLine className="w-3.5 h-3.5" /> {getStudentTahririProgress(s.id)}
                       </span>
                     </div>
-                    <button
-                      onClick={() => { setSelectedStudentId(s.id); setActiveTab('Maqra'); }}
-                      className="mt-3 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-bold hover:bg-teal-800 transition-all"
-                    >
-                      Tasmik / Semak <ArrowRight className="w-4 h-4" />
-                    </button>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={() => { setSelectedStudentId(s.id); setActiveTab('Maqra'); }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-teal-700 text-white text-xs font-bold hover:bg-teal-800 transition-all"
+                      >
+                        Tasmik / Semak <ArrowRight className="w-4 h-4" />
+                      </button>
+                      {s.id === 'h3-5' && (
+                        <a
+                          href={`https://wa.me/60176780422?text=${encodeURIComponent(buildWhatsAppMessage(s))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                        >
+                          <MessageCircle className="w-4 h-4" /> WhatsApp Waris
+                        </a>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -767,6 +813,14 @@ export default function App() {
               <p className="text-sm text-teal-100 mt-1">
                 {userRole === 'Pelajar' ? `Halaqah 3 (Ustazah Nor Aisah) • ${selectedStudent?.kelas ?? UNSET_VALUE}` : ROLE_GREETINGS[userRole]}
               </p>
+              {userRole === 'Ibu Bapa' && (
+                <button
+                  onClick={() => window.print()}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-teal-800 text-xs font-bold border border-teal-300 hover:bg-teal-50 transition-all print:hidden"
+                >
+                  <Printer className="w-4 h-4" /> Muat Turun Laporan (PDF)
+                </button>
+              )}
             </section>
 
             {studentSemesterInfo && (
@@ -783,6 +837,19 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm">
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase text-teal-700">Kemajuan Surah Disemak</span>
+                  <p className="text-sm text-slate-500 mt-1">{assessedSurahs.size} daripada {semesterSurahs.size} surah semester ini telah disemak</p>
+                </div>
+                <span className="text-2xl font-black text-teal-700">{surahProgressPercent}%</span>
+              </div>
+              <div className="w-full bg-slate-100 h-3 rounded-full mt-4 overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-400 h-full rounded-full transition-all duration-700" style={{ width: `${surahProgressPercent}%` }} />
+              </div>
+            </div>
 
             <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -803,6 +870,9 @@ export default function App() {
                 <p className="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-3 border border-slate-100 min-h-[3rem]">
                   {latestTeacherNote || 'Belum ada komen daripada pensyarah.'}
                 </p>
+                {latestTeacherNoteTimestamp && (
+                  <p className="text-[11px] text-slate-400 mt-2">Dikemas kini pada: {latestTeacherNoteTimestamp}</p>
+                )}
               </div>
             )}
 
@@ -1001,7 +1071,7 @@ export default function App() {
                         </span>
                         <textarea
                           value={studentAssessments[expandedMaqra.rubNumber]?.teacherNote ?? ''}
-                          onChange={e => updateAssessment(expandedMaqra.rubNumber, { teacherNote: e.target.value })}
+                          onChange={e => updateAssessment(expandedMaqra.rubNumber, { teacherNote: e.target.value, teacherNoteTimestamp: new Date().toLocaleString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })}
                           placeholder="cth: Bacaan lancar, tajwid mantap. Atau: Perlu ulang maqra' semasa di rumah."
                           rows={3}
                           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
