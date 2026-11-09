@@ -9,7 +9,7 @@ import { useMaqraVerses } from './useMaqraVerses';
 import logoImg from './logo.png';
 
 type ParentReaction = 'Cemerlang' | 'Baik' | 'Kurang Lancar' | 'Perlu Usaha Lebih';
-type TahririStatus = 'Belum Selesai' | 'Draf' | 'Selesai' | 'Disahkan';
+type TahririStatus = 'Belum Disemak' | 'Disemak';
 
 interface Assessment {
   syafawi: 'Mumtaz' | 'Jayyid Jiddan' | 'Jayyid' | 'Maqbul' | null;
@@ -104,7 +104,7 @@ const REMEMBER_EMAIL_KEY = 'flixmaqra_remember_email';
 const TEST_ACCOUNTS: { email: string; password: string; role: Role; displayName: string; fullName: string; studentId: string }[] = [
   { email: 'guru@psa.edu.my', password: 'guru123', role: 'Guru', displayName: 'Ustazah Nor Aisah', fullName: 'Ustazah Nor Aisah binti Abu Samah', studentId: DEFAULT_STUDENT_ID },
   { email: 'pelajar@student.psa.edu.my', password: 'pelajar123', role: 'Pelajar', displayName: 'Muhammad Irsyad', fullName: 'Muhammad Irsyad bin Azam', studentId: 'h3-5' },
-  { email: 'waris@gmail.com', password: 'waris123', role: 'Ibu Bapa', displayName: 'Waris Irsyad', fullName: 'Waris Irsyad', studentId: 'h3-5' },
+  { email: 'waris@gmail.com', password: 'waris123', role: 'Ibu Bapa', displayName: 'Suhaila', fullName: 'Suhaila Binti Hamzah', studentId: 'h3-5' },
 ];
 
 const ROLE_GREETINGS: Record<Role, string> = {
@@ -114,29 +114,23 @@ const ROLE_GREETINGS: Record<Role, string> = {
 };
 
 const TAHRIRI_LABELS: Record<TahririStatus, string> = {
-  'Belum Selesai': 'Belum Selesai',
-  'Draf': 'Draf Pelajar',
-  'Selesai': 'Selesai Pelajar',
-  'Disahkan': 'Disahkan Guru',
+  'Belum Disemak': 'Belum Disemak',
+  'Disemak': 'Disemak',
 };
 
 const TAHRIRI_BADGE: Record<TahririStatus, string> = {
-  'Belum Selesai': 'bg-slate-100 text-slate-700 border-slate-300',
-  'Draf': 'bg-amber-50 text-amber-900 border-amber-300',
-  'Selesai': 'bg-teal-50 text-teal-800 border-teal-300',
-  'Disahkan': 'bg-emerald-50 text-emerald-800 border-emerald-300',
+  'Belum Disemak': 'bg-slate-100 text-slate-700 border-slate-300',
+  'Disemak': 'bg-emerald-50 text-emerald-800 border-emerald-300',
 };
 
 const TAHRIRI_ACTIVE: Record<TahririStatus, string> = {
-  'Belum Selesai': 'bg-slate-200 text-slate-800 border-slate-400',
-  'Draf': 'bg-amber-100 text-amber-900 border-amber-400',
-  'Selesai': 'bg-teal-700 text-white border-teal-800',
-  'Disahkan': 'bg-emerald-600 text-white border-emerald-700',
+  'Belum Disemak': 'bg-slate-200 text-slate-800 border-slate-400',
+  'Disemak': 'bg-emerald-600 text-white border-emerald-700',
 };
 
 const STATUS_ACTIONS: Record<Role, { label: string; next: TahririStatus }[]> = {
-  'Guru': [{ label: '✅ Sahkan', next: 'Disahkan' }, { label: '⏳ Belum Selesai', next: 'Belum Selesai' }],
-  'Pelajar': [{ label: 'Draf', next: 'Draf' }, { label: 'Selesai', next: 'Selesai' }],
+  'Guru': [{ label: '✅ Disemak', next: 'Disemak' }, { label: '⏳ Belum Disemak', next: 'Belum Disemak' }],
+  'Pelajar': [],
   'Ibu Bapa': [],
 };
 
@@ -395,7 +389,7 @@ export default function App() {
   const updateTahriri = (rubNum: number, fields: Partial<TahririRecord>) => {
     setTahririStore(prev => {
       const key = `${selectedStudentId}_tahriri_${rubNum}`;
-      const current: TahririRecord = prev[key] ?? { status: 'Belum Selesai', rasmBetul: false, tulisanKemas: false, date: today() };
+      const current: TahririRecord = prev[key] ?? { status: 'Belum Disemak', rasmBetul: false, tulisanKemas: false, date: today() };
       return { ...prev, [key]: { ...current, ...fields, date: today() } };
     });
   };
@@ -449,13 +443,13 @@ export default function App() {
     return semRubs.every(m => {
       const asm = assessments[`${studentId}_${m.rubNumber}`];
       const tah = tahririStore[`${studentId}_tahriri_${m.rubNumber}`];
-      return !!asm?.syafawi && tah?.status === 'Disahkan';
+      return !!asm?.syafawi && tah?.status === 'Disemak';
     });
   };
   const weeklyCapai = students.filter(s => hasCompletedSemester(s.id)).length;
   const weeklyBelum = students.length - weeklyCapai;
   const totalTahririDisahkan = Object.entries(tahririStore).filter(([key, r]) =>
-    r.status === 'Disahkan' && students.some(s => key.startsWith(`${s.id}_tahriri_`))
+    r.status === 'Disemak' && students.some(s => key.startsWith(`${s.id}_tahriri_`))
   ).length;
 
   const getStudentHafazanProgress = (studentId: string): string => {
@@ -464,8 +458,8 @@ export default function App() {
   };
 
   const getStudentTahririProgress = (studentId: string): string => {
-    const maqraNum = highestMaqraWhere(tahririStore, `${studentId}_tahriri_`, r => r.status === 'Disahkan');
-    return maqraNum ? `Tahriri: ${formatMaqraPosition(maqraNum)}` : 'Belum Disahkan';
+    const maqraNum = highestMaqraWhere(tahririStore, `${studentId}_tahriri_`, r => r.status === 'Disemak');
+    return maqraNum ? `Tahriri: ${formatMaqraPosition(maqraNum)}` : 'Belum Disemak';
   };
 
   const latestHafazanMaqra = highestMaqraWhere(assessments, `${selectedStudentId}_`, a => !!a.syafawi);
@@ -501,7 +495,7 @@ export default function App() {
     { label: 'Maqbul', count: countMaqbul, bar: 'bg-rose-500' },
   ];
 
-  const juzTahririDisahkan = currentJuzMaqras.filter(m => getTahriri(m.rubNumber)?.status === 'Disahkan').length;
+  const juzTahririDisahkan = currentJuzMaqras.filter(m => getTahriri(m.rubNumber)?.status === 'Disemak').length;
 
   const activeAccount = TEST_ACCOUNTS.find(a => a.role === userRole);
   const displayName = activeAccount?.displayName ?? userRole;
@@ -528,12 +522,12 @@ export default function App() {
             ],
           }
         : {
-            name: 'Waris Irsyad',
+            name: 'Suhaila Binti Hamzah',
             badge: userRole,
             fields: [
-              { label: 'Nama Waris', value: 'Waris Irsyad' },
-              { label: 'No. Telefon', value: UNSET_VALUE },
-              { label: 'Nama Anak', value: 'Muhammad Irsyad bin Azam' },
+              { label: 'Nama Waris', value: 'Suhaila Binti Hamzah' },
+              { label: 'No. Telefon', value: '017-678 0422' },
+              { label: 'Hubungan', value: 'Ibu / Waris kepada Muhammad Irsyad Bin Azam' },
             ],
           };
 
@@ -695,7 +689,7 @@ export default function App() {
                 <div className="bg-white rounded-2xl p-4 text-slate-800">
                   <span className="inline-block px-2.5 py-1 rounded-full bg-teal-100 text-teal-800 text-[11px] font-bold">Status Tahriri</span>
                   <p className="text-3xl font-black mt-2">{totalTahririDisahkan}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">maqra' disahkan keseluruhan</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">buku tahriri disemak keseluruhan</p>
                 </div>
               </div>
             </section>
@@ -766,7 +760,7 @@ export default function App() {
         {activeTab === 'Tracker' && userRole !== 'Guru' && (
           <>
             <section className="bg-teal-800 rounded-3xl p-6 text-white shadow-lg border-b-4 border-amber-400">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Dashboard Huffaz</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-300">{userRole === 'Ibu Bapa' ? 'Dashboard Prestasi Huffaz' : 'Dashboard Huffaz'}</p>
               <h2 className="text-2xl font-black mt-1">
                 {`Selamat datang, ${activeAccount?.fullName ?? userRole}`}
               </h2>
@@ -800,6 +794,17 @@ export default function App() {
                 <p className="font-black text-slate-800 mt-1">{getStudentTahririProgress(selectedStudentId)}</p>
               </div>
             </div>
+
+            {userRole === 'Ibu Bapa' && (
+              <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm">
+                <span className="text-xs font-bold uppercase text-teal-700 flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4 text-teal-700" /> Komen Pensyarah / Maklum Balas Terkini
+                </span>
+                <p className="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-3 border border-slate-100 min-h-[3rem]">
+                  {latestTeacherNote || 'Belum ada komen daripada pensyarah.'}
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-amber-200/60 shadow-sm">
@@ -989,6 +994,21 @@ export default function App() {
                       </div>
                     </div>
 
+                    {userRole === 'Guru' && (
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                        <span className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                          <MessageSquare className="w-4 h-4 text-teal-700" /> Catatan / Komen Prestasi Pensyarah
+                        </span>
+                        <textarea
+                          value={studentAssessments[expandedMaqra.rubNumber]?.teacherNote ?? ''}
+                          onChange={e => updateAssessment(expandedMaqra.rubNumber, { teacherNote: e.target.value })}
+                          placeholder="cth: Bacaan lancar, tajwid mantap. Atau: Perlu ulang maqra' semasa di rumah."
+                          rows={3}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                        />
+                      </div>
+                    )}
+
                     {userRole === 'Ibu Bapa' && (
                       <ParentFeedback
                         teacherNote={studentAssessments[expandedMaqra.rubNumber]?.teacherNote ?? ''}
@@ -1013,8 +1033,8 @@ export default function App() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-800">Semakan Tahriri Maqra'</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Semak buku fizikal pelajar mengikut juzuk.</p>
+                  <h2 className="font-bold text-slate-800">Semakan Buku Tahriri</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Pensyarah menyemak buku penulisan tahriri mengikut kemajuan juzuk/surah hafazan pelajar.</p>
                 </div>
               </div>
             </section>
@@ -1039,14 +1059,14 @@ export default function App() {
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl border border-amber-200/60 shadow-sm flex flex-wrap items-center gap-3 text-xs font-bold">
-                  <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">✅ Disahkan: {juzTahririDisahkan}</span>
-                  <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">⏳ Belum Selesai: {currentJuzMaqras.length - juzTahririDisahkan}</span>
+                  <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">✅ Disemak: {juzTahririDisahkan}</span>
+                  <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">⏳ Belum Disemak: {currentJuzMaqras.length - juzTahririDisahkan}</span>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {currentJuzMaqras.map((maqra, idx) => {
                     const record = getTahriri(maqra.rubNumber);
-                    const status: TahririStatus = record?.status ?? 'Belum Selesai';
+                    const status: TahririStatus = record?.status ?? 'Belum Disemak';
                     const label = `J${selectedJuz}_M${idx + 1}`;
 
                     if (userRole === 'Ibu Bapa') {
@@ -1056,8 +1076,8 @@ export default function App() {
                             <span className="text-xs font-black text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">{label}</span>
                             <p className="text-xs text-slate-500 mt-1 truncate">{formatMaqraRange(maqra)}</p>
                           </div>
-                          <span className={`text-sm font-bold shrink-0 ${status === 'Disahkan' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                            {status === 'Disahkan' ? '✅ Selesai' : '⏳ Tertinggal'}
+                          <span className={`text-sm font-bold shrink-0 ${status === 'Disemak' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            {status === 'Disemak' ? '✅ Disemak' : '⏳ Belum Disemak'}
                           </span>
                         </div>
                       );
