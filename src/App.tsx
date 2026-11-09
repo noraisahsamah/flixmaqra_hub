@@ -102,9 +102,9 @@ const DEFAULT_STUDENTS: Student[] = [
 const REMEMBER_EMAIL_KEY = 'flixmaqra_remember_email';
 
 const TEST_ACCOUNTS: { email: string; password: string; role: Role; displayName: string; fullName: string; studentId: string }[] = [
-  { email: 'aisah@psa.edu.my', password: 'ustazah123', role: 'Guru', displayName: 'Ustazah Nor Aisah', fullName: 'Ustazah Nor Aisah binti Abu Samah', studentId: DEFAULT_STUDENT_ID },
-  { email: 'irsyad@student.psa.edu.my', password: 'pelajar123', role: 'Pelajar', displayName: 'Muhammad Irsyad', fullName: 'Muhammad Irsyad bin Azam', studentId: 'h3-5' },
-  { email: 'waris.irsyad@gmail.com', password: 'waris123', role: 'Ibu Bapa', displayName: 'Waris Irsyad', fullName: 'Waris Irsyad', studentId: 'h3-5' },
+  { email: 'guru@psa.edu.my', password: 'guru123', role: 'Guru', displayName: 'Ustazah Nor Aisah', fullName: 'Ustazah Nor Aisah binti Abu Samah', studentId: DEFAULT_STUDENT_ID },
+  { email: 'pelajar@student.psa.edu.my', password: 'pelajar123', role: 'Pelajar', displayName: 'Muhammad Irsyad', fullName: 'Muhammad Irsyad bin Azam', studentId: 'h3-5' },
+  { email: 'waris@gmail.com', password: 'waris123', role: 'Ibu Bapa', displayName: 'Waris Irsyad', fullName: 'Waris Irsyad', studentId: 'h3-5' },
 ];
 
 const ROLE_GREETINGS: Record<Role, string> = {
@@ -554,7 +554,7 @@ export default function App() {
                 required
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
-                placeholder="nama@psa.edu.my atau emel berdaftar"
+                placeholder="guru@psa.edu.my atau emel berdaftar"
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -608,10 +608,10 @@ export default function App() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-slate-200 space-y-1 text-[11px] text-slate-500">
-            <p className="font-bold uppercase text-slate-600">Rujukan akaun ujian rasmi</p>
-            {TEST_ACCOUNTS.map(a => (
-              <p key={a.email}>{a.role}: {a.email} / {a.password}</p>
-            ))}
+            <p className="font-bold uppercase text-slate-600">RUJUKAN AKAUN PROTOTAIP</p>
+            <p>Guru: guru@psa.edu.my / guru123</p>
+            <p>Pelajar: pelajar@student.psa.edu.my / pelajar123</p>
+            <p>Ibu Bapa: waris@gmail.com / waris123</p>
           </div>
         </div>
       </div>
