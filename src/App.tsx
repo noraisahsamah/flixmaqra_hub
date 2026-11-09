@@ -588,7 +588,7 @@ export default function App() {
             <div className="mx-auto mb-3 w-20 h-20 rounded-2xl bg-emerald-50 border border-emerald-200 p-2 flex items-center justify-center">
               <img src={logoImg} alt="Logo Flixmaqra'" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Flixmaqra’ Hub</h1>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Flixmaqra’ Hub<sup className="text-xs align-super">®</sup></h1>
             <p className="text-xs text-teal-700 font-bold tracking-wide uppercase mt-1">TRANSFORMASI DIGITAL MAQRA' AL-QURAN</p>
           </div>
 
