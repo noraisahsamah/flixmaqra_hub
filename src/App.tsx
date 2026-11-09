@@ -81,7 +81,7 @@ const SURAH_AYAH_COUNTS: number[] = [
 const TOTAL_MAQRA = 240;
 const TOTAL_JUZ = 30;
 const MAQRA_PER_JUZ = 8;
-const MUQARAR_MINGGUAN = 1;
+
 const ARABIC_FONT = "'Amiri Quran', serif";
 const UNSET_VALUE = 'Belum diisi';
 const DEFAULT_STUDENT_ID = 'h3-1';
@@ -89,12 +89,12 @@ const SELECT_CLASS = 'w-full rounded-xl border border-slate-200 bg-white px-3 py
 
 const DEFAULT_STUDENTS: Student[] = [
   { id: 'h3-1', name: 'MUHAMAD IZZUL HAIMAN BIN MOHD FAIRUZ', kelas: 'DKA 5' },
-  { id: 'h3-2', name: 'AHMAD YUSUF B. BADRUL HISHAM', kelas: 'DKM 5' },
-  { id: 'h3-3', name: 'ZARIF ZAKWAN BIN SYAHRIL AMRIN', kelas: 'DKM 5' },
-  { id: 'h3-4', name: 'MUHAMMAD ZAKI MUNIR BIN HAMDAN', kelas: 'DEP 3' },
+  { id: 'h3-2', name: 'AHMAD YUSUF B. BADRUL HISHAM', kelas: 'DKM 3' },
+  { id: 'h3-3', name: 'ZARIF ZAKWAN BIN SYAHRIL AMRIN', kelas: 'DKM 3' },
+  { id: 'h3-4', name: 'MUHAMMAD ZAKI MUNIR BIN HAMDAN', kelas: 'DKM 3' },
   { id: 'h3-5', name: 'MUHAMMAD IRSYAD BIN AZAM', kelas: 'DEP 3' },
-  { id: 'h3-6', name: 'MUHAMMAD ADAM BIN RAMZAN', kelas: 'DEP 3' },
-  { id: 'h3-7', name: 'SYED MUHAMMAD YASIR BIN SYED ERMIWAZA', kelas: 'DEP 3' },
+  { id: 'h3-6', name: 'MUHAMMAD ADAM BIN RAMZAN', kelas: 'DEP 1' },
+  { id: 'h3-7', name: 'SYED MUHAMMAD YASIR BIN SYED ERMIWAZA', kelas: 'DEP 1' },
   { id: 'h3-8', name: 'MUHAMMADA ZAFRAN BIN MD AZIMI', kelas: 'DEP 1' },
   { id: 'h3-9', name: 'MUHAMAD THAQIF AHNAF BIN MOHD SABBAH', kelas: 'DEP 1' },
 ];
@@ -215,13 +215,6 @@ function parseStoredDay(value: string): string | null {
   const [d, m, y] = value.split('/').map(Number);
   if (!d || !m || !y) return null;
   return dayKey(new Date(y, m - 1, d));
-}
-
-function isWithinLastWeek(value: string): boolean {
-  const [d, m, y] = value.split('/').map(Number);
-  if (!d || !m || !y) return false;
-  const weekStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 6).getTime();
-  return new Date(y, m - 1, d).getTime() >= weekStart;
 }
 
 function computeStreak(dates: string[]): number {
@@ -440,11 +433,21 @@ export default function App() {
     setIsAuthenticated(true);
   };
 
-  const weeklyMuqararCount = (studentId: string) =>
-    Object.entries(assessments).filter(([key, a]) =>
-      key.startsWith(`${studentId}_`) && !!a.syafawi && isWithinLastWeek(a.date)
-    ).length;
-  const weeklyCapai = students.filter(s => weeklyMuqararCount(s.id) >= MUQARAR_MINGGUAN).length;
+  const hasCompletedSemester = (studentId: string): boolean => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return false;
+    const info = getSemesterInfo(student.kelas);
+    if (!info) return false;
+    const semRubs = MAQRA_BOUNDARIES.filter(m =>
+      m.rubNumber > (info.startJuz - 1) * MAQRA_PER_JUZ && m.rubNumber <= info.endJuz * MAQRA_PER_JUZ
+    );
+    return semRubs.every(m => {
+      const asm = assessments[`${studentId}_${m.rubNumber}`];
+      const tah = tahririStore[`${studentId}_tahriri_${m.rubNumber}`];
+      return !!asm?.syafawi && tah?.status === 'Disahkan';
+    });
+  };
+  const weeklyCapai = students.filter(s => hasCompletedSemester(s.id)).length;
   const weeklyBelum = students.length - weeklyCapai;
   const totalTahririDisahkan = Object.entries(tahririStore).filter(([key, r]) =>
     r.status === 'Disahkan' && students.some(s => key.startsWith(`${s.id}_tahriri_`))
@@ -644,15 +647,20 @@ export default function App() {
             <section className="bg-teal-800 rounded-3xl p-6 text-white shadow-lg border-b-4 border-amber-400">
               <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Dashboard Halaqah 3</p>
               <h2 className="text-xl font-black mt-1">Ustazah Nor Aisah binti Abu Samah</h2>
-              <p className="text-xs text-teal-100 mt-1">Muqarar mingguan: {MUQARAR_MINGGUAN} maqra' dinilai dalam 7 hari</p>
+              <div className="text-xs text-teal-100 mt-1">
+                <p className="font-bold text-amber-300">Muqarar Mengikut Semester:</p>
+                <p>Sem 1: Juzuk 1-6 | Sem 2: Juzuk 7-12 | Sem 3: Juzuk 13-18 | Sem 4: Juzuk 19-24 | Sem 5: Juzuk 25-30</p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
                 <div className="bg-white rounded-2xl p-4 text-slate-800">
                   <span className="inline-block px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">Capai Muqarar</span>
                   <p className="text-3xl font-black mt-2">{weeklyCapai}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">lengkap tasmik & tahriri semester</p>
                 </div>
                 <div className="bg-white rounded-2xl p-4 text-slate-800">
                   <span className="inline-block px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold">Belum Capai</span>
                   <p className="text-3xl font-black mt-2">{weeklyBelum}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">daripada {students.length} pelajar</p>
                 </div>
                 <div className="bg-white rounded-2xl p-4 text-slate-800">
                   <span className="inline-block px-2.5 py-1 rounded-full bg-teal-100 text-teal-800 text-[11px] font-bold">Status Tahriri</span>
