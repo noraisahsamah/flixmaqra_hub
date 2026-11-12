@@ -6,6 +6,7 @@ import {
 import { MAQRA_BOUNDARIES } from './maqraData';
 import type { MaqraBoundary } from './maqraData';
 import { useMaqraVerses } from './useMaqraVerses';
+import ProcessFlowInfographic from './ProcessFlowInfographic';
 import logoImg from './logo.png';
 
 type ParentReaction = 'Cemerlang' | 'Baik' | 'Kurang Lancar' | 'Perlu Usaha Lebih';
@@ -327,6 +328,7 @@ export default function App() {
   const [rememberMe, setRememberMe] = useState<boolean>(() => !!localStorage.getItem(REMEMBER_EMAIL_KEY));
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showForgotHint, setShowForgotHint] = useState<boolean>(false);
+  const [showProcessFlow, setShowProcessFlow] = useState<boolean>(false);
   const [students, setStudents] = useState<Student[]>(() => loadStored('flixmaqra_students', DEFAULT_STUDENTS));
   const [newStudentName, setNewStudentName] = useState<string>('');
   const [newStudentKelas, setNewStudentKelas] = useState<string>('');
@@ -580,6 +582,10 @@ export default function App() {
       `- Ulasan Pensyarah: ${latestNote || 'Tiada komen terkini'}`;
   };
 
+  if (!isAuthenticated && showProcessFlow) {
+    return <ProcessFlowInfographic onBack={() => setShowProcessFlow(false)} />;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex items-center justify-center p-4">
@@ -661,6 +667,14 @@ export default function App() {
             <p>Pelajar: pelajar@student.psa.edu.my / pelajar123</p>
             <p>Ibu Bapa: waris@gmail.com / waris123</p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowProcessFlow(true)}
+            className="mt-4 w-full py-2.5 rounded-xl border border-teal-300 bg-teal-50 text-teal-800 text-xs font-bold hover:bg-teal-100 transition-colors"
+          >
+            Lihat Aliran Proses Penggunaan
+          </button>
         </div>
       </div>
     );
